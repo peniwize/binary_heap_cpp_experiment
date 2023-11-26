@@ -4,6 +4,7 @@
 #include <vector>
 
 // #define USE_RECURSIVE_HEAPIFY
+// #define USE_PRECISION_CHILD_OFFSET
 
 using namespace std;
 
@@ -15,7 +16,7 @@ using namespace std;
     Rule: left node indexes are always odd,
           right node indexes are always even.
 */
-struct trickle_up_max_heap_t
+struct max_heapify_up_t
 {
     template <typename t_iter_t>
     void operator()(t_iter_t begin, t_iter_t node)
@@ -24,7 +25,11 @@ struct trickle_up_max_heap_t
         // Recursive implementation: space complexity = O(n)
         //                           time complexity = O(lg(n))
         auto const node_idx = node - begin;
+#if USE_PRECISION_CHILD_OFFSET
         auto const child_offset = (1 << (~node_idx & 0x1)) & 0x3;
+#else // #if defined(USE_PRECISION_CHILD_OFFSET)
+        auto const child_offset = 1;
+#endif // #if defined(USE_PRECISION_CHILD_OFFSET)
         auto const parent_idx = (node_idx - child_offset) / 2;
         if (0 <= parent_idx)
         {
@@ -32,7 +37,7 @@ struct trickle_up_max_heap_t
             if (*parent < *node)
             {
                 std::swap(*parent, *node);
-                trickle_up_max_heap_t{}(begin, parent);
+                max_heapify_up_t{}(begin, parent);
             }
         }
 #else // #if defined(USE_RECURSIVE_HEAPIFY)
@@ -41,7 +46,11 @@ struct trickle_up_max_heap_t
         while (true)
         {
             auto const node_idx = node - begin;
+#if defined(USE_PRECISION_CHILD_OFFSET)
             auto const child_offset = (1 << (~node_idx & 0x1)) & 0x3;
+#else // #if defined(USE_PRECISION_CHILD_OFFSET)
+            auto const child_offset = 1;
+#endif // #if defined(USE_PRECISION_CHILD_OFFSET)
             auto const parent_idx = (node_idx - child_offset) / 2;
             if (0 <= parent_idx)
             {
@@ -61,33 +70,42 @@ struct trickle_up_max_heap_t
     }
 };
 
-struct trickle_down_max_heap_t
+struct max_heapify_down_t
 {
     template <typename t_iter_t>
     void operator()(t_iter_t begin, t_iter_t end, t_iter_t node)
     {
         auto const ary_size = end - begin;
-        auto const node_idx = node - begin;
+        decltype(node) child = node;
 
-        auto const left_child_idx = node_idx * 2 + 1;
-        auto left_child = begin + left_child_idx;
-        if (ary_size > left_child_idx
-            && *left_child > *node)
+        while (true)
         {
-            std::swap(*left_child, *node);
-//
-//!\todo TODO: Convert this from recursive to iterative.
-//
-            this->operator()(begin, end, left_child);
-        }
+            auto const node_idx = node - begin;
 
-        auto const right_child_idx = node_idx * 2 + 2;
-        auto right_child = begin + right_child_idx;
-        if (ary_size > right_child_idx
-            && *right_child > *node)
-        {
-            std::swap(*right_child, *node);
-            this->operator()(begin, end, right_child);
+            auto const left_child_idx = node_idx * 2 + 1;
+            auto left_child = begin + left_child_idx;
+            if (ary_size > left_child_idx
+                && *left_child > *child)
+            {
+                child = left_child;
+            }
+
+            auto const right_child_idx = node_idx * 2 + 2;
+            auto right_child = begin + right_child_idx;
+            if (ary_size > right_child_idx
+                && *right_child > *child)
+            {
+                child = right_child;
+            }
+        
+            auto const value_has_stopped_moving = node == child;
+            if (value_has_stopped_moving)
+            {
+                break;
+            }
+
+            std::swap(*child, *node);
+            node = child;
         }
     }
 };
@@ -116,12 +134,12 @@ struct trickle_down_max_heap_t
     [9 8 5 6 7 1 4 0 3 2]  (heap)
 
     o Add node to bottom leftmost available leaf.
-    o Recursively trickle_up_max_heap_t upward while the new value is greater than the parent, until the root is reached.
+    o Recursively max_heapify_up_t upward while the new value is greater than the parent, until the root is reached.
 
     for idx in range(0, size(ary)):
-        trickle_up_max_heap_t(ary, idx)
+        max_heapify_up_t(ary, idx)
 */
-template <typename t_trickle_up_t = trickle_up_max_heap_t>
+template <typename t_trickle_up_t = max_heapify_up_t>
 struct heapify_t
 {
     template <typename t_iter_t>
@@ -134,7 +152,31 @@ struct heapify_t
     }
 };
 
-using max_heapify_t = heapify_t<trickle_up_max_heap_t>;
+using max_heapify_t = heapify_t<max_heapify_up_t>;
+
+template <class I>
+void heap_sort_ascending(I begin, I end)
+{
+    auto const empty = end == begin;
+    if (!empty)
+    {
+        max_heapify_t{}(begin, end);
+        while (begin < end)
+        {
+            auto const next_value = *begin;
+            *begin = std::move(*(end - 1)); // Move the last item in the tree to the root.
+            --end; // Remove the item from the collection.
+            max_heapify_down_t{}(begin, end, begin);
+            *end = std::move(next_value); // Store the removed value in the unused space at the end of the collection.
+        }
+    }
+}
+
+template <class T, std::size_t S>
+void heap_sort_ascending(T (&ary)[S])
+{
+    heap_sort_ascending(ary, ary + S);
+}
 
 template <
     typename t_item_t
@@ -166,12 +208,14 @@ public:
         t_heapify_t{}(this->begin(), this->end());
     }
     
+#if 0
     // //!\brief Initialize from initializer list.
-    // heap_t(std::initializer_list<t_item_t> list)
-    //     : array_(list.begin(), list.end())
-    // {
-    //     t_heapify_t{}(array_.begin(), array_.end());
-    // }
+    heap_t(std::initializer_list<t_item_t> list)
+        : array_(list.begin(), list.end())
+    {
+        t_heapify_t{}(array_.begin(), array_.end());
+    }
+#endif // #if 0
     
     //!\brief Initialize from initializer list, e.g. {1, 2, 3, 4, 5}.
     template<typename... t_val_t>
@@ -199,7 +243,7 @@ public:
         auto const result = (*this)[0];
         std::swap(*begin(), *(end() - 1));
         array_.resize(size() - 1);
-        trickle_down_max_heap_t{}(begin(), end(), begin());
+        max_heapify_down_t{}(begin(), end(), begin());
         return result;
     }
 
@@ -211,7 +255,7 @@ public:
         array_.emplace_back(std::move(value));
 
         // Heapify, starting from the new child to correctly position it within the tree.
-        trickle_up_max_heap_t{}(begin(), end() - 1);
+        max_heapify_up_t{}(begin(), end() - 1);
 
         return *this;
     }
@@ -234,11 +278,11 @@ public:
             *position = std::move(value);
             if (increment)
             {
-                trickle_up_max_heap_t{}(begin(), std::move(position));
+                max_heapify_up_t{}(begin(), std::move(position));
             }
             else
             {
-                trickle_down_max_heap_t{}(begin(), end(), std::move(position));
+                max_heapify_down_t{}(begin(), end(), std::move(position));
             }
         }
 
@@ -288,7 +332,7 @@ operator<<(std::ostream& os, heap_t<T, H> const& heap)
     return os;
 }
 
-// template class max_heap_t<int>;
+template class heap_t<int, max_heapify_t>; //!< Instantiate template to ensure the entire thing compiles.
 
 int main(int, char**)
 {
@@ -306,11 +350,11 @@ int main(int, char**)
             assert(heapified_val[idx] == heap[idx]);
         }
 
-        cout << "Extracting: " << '\n';
+        cout << "Extracting: " << '\n' << std::flush;
         for (int expected_value = 9; !heap.empty(); --expected_value)
         {
             auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
+            cout << value << ' ';
             assert(value == expected_value);
         }
         cout << std::endl;
@@ -409,6 +453,23 @@ int main(int, char**)
             auto const value = heap.pop();
             cout << value << ' ' << std::flush;
             assert(value == expected_values[idx]);
+        }
+        cout << std::endl;
+    }
+
+    cout << std::endl;
+
+    { // New scope.
+        int values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+        cout << "Before sorting:" << '\n' << values << '\n';
+        heap_sort_ascending(values);
+        cout << "After sorting:" << '\n';
+        for (std::size_t idx = 0; std::size(values) > idx; ++idx)
+        {
+            auto const expected_value = idx;
+            auto const value = values[idx];
+            cout << value << ' ';
+            assert(value == expected_value);
         }
         cout << std::endl;
     }
