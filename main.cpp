@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 
+// #define USE_RECURSIVE_HEAPIFY
+
 using namespace std;
 
 /*
@@ -13,29 +15,14 @@ using namespace std;
     Rule: left node indexes are always odd,
           right node indexes are always even.
 */
-template <typename t_iter_t>
-void max_heapify(t_iter_t begin, t_iter_t node)
+struct trickle_up_max_heap_t
 {
-#if 0
-    // Recursive implementation: space complexity = O(n)
-    //                           time complexity = O(lg(n))
-    auto const node_idx = node - begin;
-    auto const child_offset = (1 << (~node_idx & 0x1)) & 0x3;
-    auto const parent_idx = (node_idx - child_offset) / 2;
-    if (0 <= parent_idx)
+    template <typename t_iter_t>
+    void operator()(t_iter_t begin, t_iter_t node)
     {
-        auto parent = begin + parent_idx;
-        if (*parent < *node)
-        {
-            std::swap(*parent, *node);
-            max_heapify(begin, parent);
-        }
-    }
-#else // #if 0
-    // Iterative implementation: space complexity = O(1)
-    //                           time complexity = O(lg(n))
-    while (true)
-    {
+#if defined(USE_RECURSIVE_HEAPIFY)
+        // Recursive implementation: space complexity = O(n)
+        //                           time complexity = O(lg(n))
         auto const node_idx = node - begin;
         auto const child_offset = (1 << (~node_idx & 0x1)) & 0x3;
         auto const parent_idx = (node_idx - child_offset) / 2;
@@ -45,44 +32,68 @@ void max_heapify(t_iter_t begin, t_iter_t node)
             if (*parent < *node)
             {
                 std::swap(*parent, *node);
-                node = parent;
-
-                continue;
+                trickle_up_max_heap_t{}(begin, parent);
             }
         }
+#else // #if defined(USE_RECURSIVE_HEAPIFY)
+        // Iterative implementation: space complexity = O(1)
+        //                           time complexity = O(lg(n))
+        while (true)
+        {
+            auto const node_idx = node - begin;
+            auto const child_offset = (1 << (~node_idx & 0x1)) & 0x3;
+            auto const parent_idx = (node_idx - child_offset) / 2;
+            if (0 <= parent_idx)
+            {
+                auto parent = begin + parent_idx;
+                if (*parent < *node)
+                {
+                    std::swap(*parent, *node);
+                    node = parent;
 
-        break;
+                    continue;
+                }
+            }
+
+            break;
+        }
+#endif // #if defined(USE_RECURSIVE_HEAPIFY)
     }
-#endif // #if 0
-}
+};
 
-template <typename t_iter_t>
-void trickle_down_max_heap(t_iter_t begin, t_iter_t end, t_iter_t node)
+struct trickle_down_max_heap_t
 {
-    auto const ary_size = end - begin;
-    auto const node_idx = node - begin;
-
-    auto const left_child_idx = node_idx * 2 + 1;
-    auto left_child = begin + left_child_idx;
-    if (ary_size > left_child_idx
-        && *left_child > *node)
+    template <typename t_iter_t>
+    void operator()(t_iter_t begin, t_iter_t end, t_iter_t node)
     {
-        std::swap(*left_child, *node);
-        trickle_down_max_heap(begin, end, left_child);
-    }
+        auto const ary_size = end - begin;
+        auto const node_idx = node - begin;
 
-    auto const right_child_idx = node_idx * 2 + 2;
-    auto right_child = begin + right_child_idx;
-    if (ary_size > right_child_idx
-        && *right_child > *node)
-    {
-        std::swap(*right_child, *node);
-        trickle_down_max_heap(begin, end, right_child);
+        auto const left_child_idx = node_idx * 2 + 1;
+        auto left_child = begin + left_child_idx;
+        if (ary_size > left_child_idx
+            && *left_child > *node)
+        {
+            std::swap(*left_child, *node);
+//
+//!\todo TODO: Convert this from recursive to iterative.
+//
+            this->operator()(begin, end, left_child);
+        }
+
+        auto const right_child_idx = node_idx * 2 + 2;
+        auto right_child = begin + right_child_idx;
+        if (ary_size > right_child_idx
+            && *right_child > *node)
+        {
+            std::swap(*right_child, *node);
+            this->operator()(begin, end, right_child);
+        }
     }
-}
+};
 
 /*
-    Heap binary tree is left-weighted and stored in an array.
+    Heap [complete] binary tree is left-weighted and stored in an array.
 
      0 1 2 3 4 5 6 7 8 9   (array indexes)
     [0 1 2 3 4 5 6 7 8 9]  (heap)
@@ -105,25 +116,35 @@ void trickle_down_max_heap(t_iter_t begin, t_iter_t end, t_iter_t node)
     [9 8 5 6 7 1 4 0 3 2]  (heap)
 
     o Add node to bottom leftmost available leaf.
-    o Recursively max_heapify upward while the new value is greater than the parent, until the root is reached.
+    o Recursively trickle_up_max_heap_t upward while the new value is greater than the parent, until the root is reached.
 
     for idx in range(0, size(ary)):
-        max_heapify(ary, idx)
+        trickle_up_max_heap_t(ary, idx)
 */
-template <typename t_iter_t>
-void make_max_heap(t_iter_t begin, t_iter_t end)
+template <typename t_trickle_up_t = trickle_up_max_heap_t>
+struct heapify_t
 {
-    for (auto iter = begin; end != iter; ++iter)
+    template <typename t_iter_t>
+    void operator()(t_iter_t begin, t_iter_t end)
     {
-        max_heapify(begin, iter);
+        for (auto iter = begin; end != iter; ++iter)
+        {
+            t_trickle_up_t{}(begin, iter);
+        }
     }
-}
+};
 
-template <typename t_item_t>
+using max_heapify_t = heapify_t<trickle_up_max_heap_t>;
+
+template <
+    typename t_item_t
+    , typename t_heapify_t = max_heapify_t
+    , typename t_container_t = std::vector<t_item_t>
+>
 class heap_t
 {
 public:
-    using container_t = std::vector<t_item_t>;
+    using container_t = t_container_t;
     using iterator = typename container_t::iterator;
     using const_iterator = typename container_t::const_iterator;
 
@@ -142,14 +163,14 @@ public:
     heap_t(t_iter_t begin, t_iter_t end)
         : array_(begin, end)
     {
-        make_max_heap(this->begin(), this->end());
+        t_heapify_t{}(this->begin(), this->end());
     }
     
     // //!\brief Initialize from initializer list.
     // heap_t(std::initializer_list<t_item_t> list)
     //     : array_(list.begin(), list.end())
     // {
-    //     make_max_heap(array_.begin(), array_.end());
+    //     t_heapify_t{}(array_.begin(), array_.end());
     // }
     
     //!\brief Initialize from initializer list, e.g. {1, 2, 3, 4, 5}.
@@ -157,7 +178,7 @@ public:
     heap_t(t_item_t&& val1, t_val_t&&... value)
         : array_{std::forward<t_item_t>(val1), std::forward<t_val_t>(value)...}
     {
-        make_max_heap(begin(), end());
+        t_heapify_t{}(begin(), end());
     }
 
     [[nodiscard]] iterator begin() { return array_.begin(); }
@@ -171,17 +192,18 @@ public:
     
     [[nodiscard]] auto const& operator[](std::size_t idx) const { return array_[idx]; }
     
+    //!\brief Remove the head element from the heap.
     t_item_t pop()
     {
-        if (empty()) { throw std::runtime_error{"empty"}; }
+        if (empty()) { throw std::out_of_range{"empty"}; }
         auto const result = (*this)[0];
         std::swap(*begin(), *(end() - 1));
         array_.resize(size() - 1);
-        trickle_down_max_heap(begin(), end(), begin());
+        trickle_down_max_heap_t{}(begin(), end(), begin());
         return result;
     }
 
-    //!\todo Add an item to the heap.
+    //!\todo Add an element to the heap.
     heap_t& push(t_item_t value)
     {
         // Add the item to the leftmost available child position in the tree.
@@ -189,12 +211,12 @@ public:
         array_.emplace_back(std::move(value));
 
         // Heapify, starting from the new child to correctly position it within the tree.
-        max_heapify(begin(), end() - 1);
+        trickle_up_max_heap_t{}(begin(), end() - 1);
 
         return *this;
     }
 
-    //!\brief Add an item to or replace an item in the heap.
+    //!\brief Add an element to or replace an element in the heap.
     heap_t& insert(iterator position, t_item_t value)
     {
         if (end() == position)
@@ -212,11 +234,11 @@ public:
             *position = std::move(value);
             if (increment)
             {
-                max_heapify(begin(), std::move(position));
+                trickle_up_max_heap_t{}(begin(), std::move(position));
             }
             else
             {
-                trickle_down_max_heap(begin(), end(), std::move(position));
+                trickle_down_max_heap_t{}(begin(), end(), std::move(position));
             }
         }
 
@@ -226,6 +248,9 @@ public:
 private:
     container_t array_;
 };
+
+template <typename t_item_t>
+using max_heap_t = heap_t<t_item_t, max_heapify_t>;
 
 template<std::size_t S>
 std::ostream&
@@ -251,9 +276,9 @@ operator<<(std::ostream& os, std::initializer_list<T> const heap)
     return os;
 }
 
-template<typename T>
+template<typename T, typename H>
 std::ostream&
-operator<<(std::ostream& os, heap_t<T> const& heap)
+operator<<(std::ostream& os, heap_t<T, H> const& heap)
 {
     for (auto const& val : heap)
     {
@@ -263,7 +288,7 @@ operator<<(std::ostream& os, heap_t<T> const& heap)
     return os;
 }
 
-template class heap_t<int>;
+// template class max_heap_t<int>;
 
 int main(int, char**)
 {
@@ -272,7 +297,7 @@ int main(int, char**)
     cout << "Before heapification:" << '\n' << init_val << '\n';
     
     { // New scope.
-        auto heap = heap_t<int>{init_val};
+        auto heap = max_heap_t<int>{init_val};
         cout << "After heapification:" << '\n' << heap << '\n';
         assert(std::size(init_val) == std::size(heapified_val));
         assert(std::size(init_val) == heap.size());
@@ -294,7 +319,7 @@ int main(int, char**)
     cout << std::endl;
 
     { // New scope.
-        auto heap = heap_t<int>{init_val};
+        auto heap = max_heap_t<int>{init_val};
         heap.push(10);
         cout << "Added '10': " << '\n';
         for (int expected_value = 10; !heap.empty(); --expected_value)
@@ -309,7 +334,7 @@ int main(int, char**)
     cout << std::endl;
 
     { // New scope.
-        auto heap = heap_t<int>{init_val};
+        auto heap = max_heap_t<int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
@@ -336,7 +361,7 @@ int main(int, char**)
     cout << std::endl;
 
     { // New scope.
-        auto heap = heap_t<int>{init_val};
+        auto heap = max_heap_t<int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
@@ -363,7 +388,8 @@ int main(int, char**)
     cout << std::endl;
 
     { // New scope.
-        auto heap = heap_t<int>{init_val};
+        auto heap = max_heap_t
+        <int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
