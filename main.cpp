@@ -124,14 +124,14 @@ struct heapify_down_t
      0 1 2 3 4 5 6 7 8 9   (array indexes)
     [0 1 2 3 4 5 6 7 8 9]  (heap)
 
-          Unheapified (invalid heap):
+          Unheapified (usually invalid; happend to be valid min heap due to initial array values):
 
                 0
              1     2
            3   4 5   6
           7 8 9
 
-          Heapified (valid max heap):
+          Heapified (valid MAX heap):
 
                 9
              8     5
@@ -140,6 +140,16 @@ struct heapify_down_t
     
      0 1 2 3 4 5 6 7 8 9   (array indexes)
     [9 8 5 6 7 1 4 0 3 2]  (max heap)
+
+          Heapified (valid MIN heap):
+
+                0
+             1     2
+           3   4 5   6
+          7 8 9
+    
+     0 1 2 3 4 5 6 7 8 9   (array indexes)
+    [0 1 2 3 4 5 6 7 8 9]  (min heap)
 
     Max heap:
         o Add node to bottom leftmost available leaf.
@@ -157,6 +167,10 @@ struct heapify_t
     using iter_t = t_iter_t;
     using heapify_up_type = heapify_up_t<t_iter_t, t_cmp_op_t>;
     using heapify_down_type = heapify_down_t<t_iter_t, t_cmp_op_t>;
+//
+//!\todo TODO: >>> Under Construction <<<
+//
+//    using change_heap_value_type = change_heap_value_t<t_iter_t, t_cmd_op_t>;
 
     void operator()(t_iter_t begin, t_iter_t end, t_cmp_op_t cmp_op = t_cmp_op_t{})
     {
@@ -282,6 +296,11 @@ public:
         }
         else
         {
+//
+//!\todo TODO: Refactor the following logic, which is for a MAX heap ONLY, 
+//             so it also supports min heap.  Delegate to a type defined in
+//             t_heapify_t - similar to heapify_up_type and heapify_down_type.
+//
             auto const increment = *position < value;
             *position = std::move(value);
             if (increment)
@@ -341,9 +360,9 @@ operator<<(std::ostream& os, std::initializer_list<T> const heap)
     return os;
 }
 
-template<typename T, typename H>
+template<typename I, typename V, typename H>
 std::ostream&
-operator<<(std::ostream& os, heap_t<T, H> const& heap)
+operator<<(std::ostream& os, heap_t<I, V, H> const& heap)
 {
     for (auto const& val : heap)
     {
@@ -579,13 +598,23 @@ test_min_heap()
 {
     cout << "((( TESTING MIN HEAP )))" << '\n' << '\n';
 
-#if 0
-    int const init_val[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+    /*
+            Heapified (valid MIN heap):
+
+                    0
+                 1     4
+               3   2 8   5
+              9 6 7
+        
+         0 1 2 3 4 5 6 7 8 9   (array indexes)
+        [0 1 4 3 2 8 5 9 6 7]  (min heap)
+    */
+    int const init_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+    int const heapified_val[] = { 0, 1, 4, 3, 2, 8, 5, 9, 6, 7 };
     
     { // New scope.
         cout << "Before heapification:" << '\n' << init_val << '\n';
-        auto heap = max_heap_t<int>{init_val};
+        auto heap = min_heap_t<int>{init_val};
         cout << "After heapification:" << '\n' << heap << '\n';
         assert(std::size(init_val) == std::size(heapified_val));
         assert(std::size(init_val) == heap.size());
@@ -595,7 +624,7 @@ test_min_heap()
         }
 
         cout << "Extracting: " << '\n' << std::flush;
-        for (int expected_value = 9; !heap.empty(); --expected_value)
+        for (int expected_value = 0; !heap.empty(); ++expected_value)
         {
             auto const value = heap.pop();
             cout << value << ' ';
@@ -607,10 +636,10 @@ test_min_heap()
     cout << std::endl;
 
     { // New scope.
-        auto heap = max_heap_t<int>{init_val};
+        auto heap = min_heap_t<int>{init_val};
         heap.push(10);
         cout << "Added '10': " << '\n';
-        for (int expected_value = 10; !heap.empty(); --expected_value)
+        for (int expected_value = 0; !heap.empty(); ++expected_value)
         {
             auto const value = heap.pop();
             cout << value << ' ' << std::flush;
@@ -622,7 +651,7 @@ test_min_heap()
     cout << std::endl;
 
     { // New scope.
-        auto heap = max_heap_t<int>{init_val};
+        auto heap = min_heap_t<int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
@@ -636,7 +665,7 @@ test_min_heap()
             return iter;
         }(), 10);
         cout << "Changed '5' to '10': " << '\n';
-        int const expected_values[] = { 10, 9, 8, 7, 6, 4, 3, 2, 1, 0 };
+        int const expected_values[] = { 0, 1, 2, 3, 4, 6, 7, 8, 9, 10 };
         for (int idx = 0; std::size(expected_values) > idx; ++idx)
         {
             auto const value = heap.pop();
@@ -649,7 +678,7 @@ test_min_heap()
     cout << std::endl;
 
     { // New scope.
-        auto heap = max_heap_t<int>{init_val};
+        auto heap = min_heap_t<int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
@@ -662,8 +691,8 @@ test_min_heap()
             assert(heap.end() != iter);
             return iter;
         }(), -1);
-        cout << "Changed '5' to '-1': " << '\n';
-        int const expected_values[] = { 9, 8, 7, 6, 4, 3, 2, 1, 0, -1 };
+        cout << "Changed '5' to '-1': " << heap << '\n';
+        int const expected_values[] = { -1, 0, 1, 2, 3, 4, 6, 7, 8, 9 };
         for (int idx = 0; std::size(expected_values) > idx; ++idx)
         {
             auto const value = heap.pop();
@@ -673,10 +702,11 @@ test_min_heap()
         cout << std::endl;
     }
 
+#if 0
     cout << std::endl;
 
     { // New scope.
-        auto heap = max_heap_t
+        auto heap = min_heap_t
         <int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
