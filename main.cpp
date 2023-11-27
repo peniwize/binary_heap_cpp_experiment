@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cassert>
+#include <functional>
+#include <iterator>
 #include <iostream>
 #include <vector>
 
@@ -16,9 +18,12 @@ using namespace std;
     Rule: left node indexes are always odd,
           right node indexes are always even.
 */
-struct max_heapify_up_t
+template <
+    typename t_iter_t
+    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+>
+struct heapify_up_t
 {
-    template <typename t_iter_t>
     void operator()(t_iter_t begin, t_iter_t node)
     {
 #if defined(USE_RECURSIVE_HEAPIFY)
@@ -34,10 +39,10 @@ struct max_heapify_up_t
         if (0 <= parent_idx)
         {
             auto parent = begin + parent_idx;
-            if (*parent < *node)
+            if (t_cmp_op_t{}(*node, *parent))
             {
                 std::swap(*parent, *node);
-                max_heapify_up_t{}(begin, parent);
+                heapify_up_t{}(std::move(begin), std::move(parent));
             }
         }
 #else // #if defined(USE_RECURSIVE_HEAPIFY)
@@ -55,7 +60,7 @@ struct max_heapify_up_t
             if (0 <= parent_idx)
             {
                 auto parent = begin + parent_idx;
-                if (*parent < *node)
+                if (t_cmp_op_t{}(*node, *parent))
                 {
                     std::swap(*parent, *node);
                     node = parent;
@@ -70,9 +75,12 @@ struct max_heapify_up_t
     }
 };
 
-struct max_heapify_down_t
+template <
+    typename t_iter_t
+    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+>
+struct heapify_down_t
 {
-    template <typename t_iter_t>
     void operator()(t_iter_t begin, t_iter_t end, t_iter_t node)
     {
         auto const ary_size = end - begin;
@@ -85,7 +93,7 @@ struct max_heapify_down_t
             auto const left_child_idx = node_idx * 2 + 1;
             auto left_child = begin + left_child_idx;
             if (ary_size > left_child_idx
-                && *left_child > *child)
+                && t_cmp_op_t{}(*left_child, *child))
             {
                 child = left_child;
             }
@@ -93,7 +101,7 @@ struct max_heapify_down_t
             auto const right_child_idx = node_idx * 2 + 2;
             auto right_child = begin + right_child_idx;
             if (ary_size > right_child_idx
-                && *right_child > *child)
+                && t_cmp_op_t{}(*right_child, *child))
             {
                 child = right_child;
             }
@@ -123,7 +131,7 @@ struct max_heapify_down_t
            3   4 5   6
           7 8 9
 
-          Heapified (valid heap):
+          Heapified (valid max heap):
 
                 9
              8     5
@@ -131,42 +139,59 @@ struct max_heapify_down_t
           0 3 2
     
      0 1 2 3 4 5 6 7 8 9   (array indexes)
-    [9 8 5 6 7 1 4 0 3 2]  (heap)
+    [9 8 5 6 7 1 4 0 3 2]  (max heap)
 
-    o Add node to bottom leftmost available leaf.
-    o Recursively max_heapify_up_t upward while the new value is greater than the parent, until the root is reached.
+    Max heap:
+        o Add node to bottom leftmost available leaf.
+        o Recursively max_heapify_up_t upward while the new value is greater than the parent, until the root is reached.
 
-    for idx in range(0, size(ary)):
-        max_heapify_up_t(ary, idx)
+        for idx in range(0, size(ary)):
+            max_heapify_up_t(ary, idx)
 */
-template <typename t_trickle_up_t = max_heapify_up_t>
+template <
+    typename t_iter_t
+    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+>
 struct heapify_t
 {
-    template <typename t_iter_t>
-    void operator()(t_iter_t begin, t_iter_t end)
+    using iter_t = t_iter_t;
+    using heapify_up_type = heapify_up_t<t_iter_t, t_cmp_op_t>;
+    using heapify_down_type = heapify_down_t<t_iter_t, t_cmp_op_t>;
+
+    void operator()(t_iter_t begin, t_iter_t end, t_cmp_op_t cmp_op = t_cmp_op_t{})
     {
         for (auto iter = begin; end != iter; ++iter)
         {
-            t_trickle_up_t{}(begin, iter);
+            heapify_up_type{}(begin, iter);
         }
     }
 };
 
-using max_heapify_t = heapify_t<max_heapify_up_t>;
+template<typename t_iter_t>
+using max_heapify_t = heapify_t<
+    t_iter_t
+    , std::greater<
+        typename std::iterator_traits<t_iter_t>::value_type
+    >
+>;
+
+// [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
 
 template <class I>
 void heap_sort_ascending(I begin, I end)
 {
+    using max_heapify_type = max_heapify_t<I>;
+    using heapify_down_type = typename max_heapify_type::heapify_down_type;
     auto const empty = end == begin;
     if (!empty)
     {
-        max_heapify_t{}(begin, end);
+        max_heapify_type{}(begin, end);
         while (begin < end)
         {
             auto const next_value = *begin;
             *begin = std::move(*(end - 1)); // Move the last item in the tree to the root.
             --end; // Remove the item from the collection.
-            max_heapify_down_t{}(begin, end, begin);
+            heapify_down_type{}(begin, end, begin);
             *end = std::move(next_value); // Store the removed value in the unused space at the end of the collection.
         }
     }
@@ -178,10 +203,12 @@ void heap_sort_ascending(T (&ary)[S])
     heap_sort_ascending(ary, ary + S);
 }
 
+// [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
+
 template <
     typename t_item_t
-    , typename t_heapify_t = max_heapify_t
     , typename t_container_t = std::vector<t_item_t>
+    , typename t_heapify_t = max_heapify_t<typename t_container_t::iterator>
 >
 class heap_t
 {
@@ -189,6 +216,9 @@ public:
     using container_t = t_container_t;
     using iterator = typename container_t::iterator;
     using const_iterator = typename container_t::const_iterator;
+    using heapify_type = t_heapify_t;
+    using heapify_up_type = typename heapify_type::heapify_up_type;
+    using heapify_down_type = typename heapify_type::heapify_down_type;
 
     heap_t() = default;
 
@@ -205,7 +235,7 @@ public:
     heap_t(t_iter_t begin, t_iter_t end)
         : array_(begin, end)
     {
-        t_heapify_t{}(this->begin(), this->end());
+        heapify_type{}(this->begin(), this->end());
     }
     
 #if 0
@@ -213,7 +243,7 @@ public:
     heap_t(std::initializer_list<t_item_t> list)
         : array_(list.begin(), list.end())
     {
-        t_heapify_t{}(array_.begin(), array_.end());
+        heapify_type{}(array_.begin(), array_.end());
     }
 #endif // #if 0
     
@@ -222,7 +252,7 @@ public:
     heap_t(t_item_t&& val1, t_val_t&&... value)
         : array_{std::forward<t_item_t>(val1), std::forward<t_val_t>(value)...}
     {
-        t_heapify_t{}(begin(), end());
+        heapify_type{}(begin(), end());
     }
 
     [[nodiscard]] iterator begin() { return array_.begin(); }
@@ -243,7 +273,7 @@ public:
         auto const result = (*this)[0];
         std::swap(*begin(), *(end() - 1));
         array_.resize(size() - 1);
-        max_heapify_down_t{}(begin(), end(), begin());
+        heapify_down_type{}(begin(), end(), begin());
         return result;
     }
 
@@ -255,7 +285,7 @@ public:
         array_.emplace_back(std::move(value));
 
         // Heapify, starting from the new child to correctly position it within the tree.
-        max_heapify_up_t{}(begin(), end() - 1);
+        heapify_up_type{}(begin(), end() - 1);
 
         return *this;
     }
@@ -278,11 +308,11 @@ public:
             *position = std::move(value);
             if (increment)
             {
-                max_heapify_up_t{}(begin(), std::move(position));
+                heapify_up_type{}(begin(), std::move(position));
             }
             else
             {
-                max_heapify_down_t{}(begin(), end(), std::move(position));
+                heapify_down_type{}(begin(), end(), std::move(position));
             }
         }
 
@@ -294,7 +324,13 @@ private:
 };
 
 template <typename t_item_t>
-using max_heap_t = heap_t<t_item_t, max_heapify_t>;
+using max_heap_t = heap_t<
+    t_item_t
+    , std::vector<t_item_t>
+    , max_heapify_t<typename std::vector<t_item_t>::iterator>
+>;
+
+// [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
 
 template<std::size_t S>
 std::ostream&
@@ -332,9 +368,17 @@ operator<<(std::ostream& os, heap_t<T, H> const& heap)
     return os;
 }
 
-template class heap_t<int, max_heapify_t>; //!< Instantiate template to ensure the entire thing compiles.
+// [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
 
-int main(int, char**)
+//!< Explicitly instantiate template to ensure the entire thing compiles.
+template class heap_t<
+    int
+    , std::vector<int>
+    , max_heapify_t<typename std::vector<int>::iterator>
+>;
+
+void
+test_max_heap()
 {
     int const init_val[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
@@ -473,6 +517,14 @@ int main(int, char**)
         }
         cout << std::endl;
     }
+}
+
+int 
+main(int, char**)
+{
+    test_max_heap();
+    
+    cout << '\n' << "ALL TESTS PASSED" << std::endl;
 
     return 0;
 }
