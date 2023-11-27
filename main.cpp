@@ -24,7 +24,10 @@ template <
 >
 struct heapify_up_t
 {
-    void operator()(t_iter_t begin, t_iter_t node)
+    using iter_type = t_iter_t;
+    using cmp_op_type = t_cmp_op_t;
+
+    void operator()(iter_type begin, iter_type node)
     {
 #if defined(USE_RECURSIVE_HEAPIFY)
         // Recursive implementation: space complexity = O(n)
@@ -39,7 +42,7 @@ struct heapify_up_t
         if (0 <= parent_idx)
         {
             auto parent = begin + parent_idx;
-            if (t_cmp_op_t{}(*node, *parent))
+            if (cmp_op_type{}(*node, *parent))
             {
                 std::swap(*parent, *node);
                 heapify_up_t{}(std::move(begin), std::move(parent));
@@ -60,7 +63,7 @@ struct heapify_up_t
             if (0 <= parent_idx)
             {
                 auto parent = begin + parent_idx;
-                if (t_cmp_op_t{}(*node, *parent))
+                if (cmp_op_type{}(*node, *parent))
                 {
                     std::swap(*parent, *node);
                     node = parent;
@@ -81,7 +84,10 @@ template <
 >
 struct heapify_down_t
 {
-    void operator()(t_iter_t begin, t_iter_t end, t_iter_t node)
+    using iter_type = t_iter_t;
+    using cmp_op_type = t_cmp_op_t;
+
+    void operator()(iter_type begin, iter_type end, iter_type node)
     {
         auto const ary_size = end - begin;
         decltype(node) child = node;
@@ -93,7 +99,7 @@ struct heapify_down_t
             auto const left_child_idx = node_idx * 2 + 1;
             auto left_child = begin + left_child_idx;
             if (ary_size > left_child_idx
-                && t_cmp_op_t{}(*left_child, *child))
+                && cmp_op_type{}(*left_child, *child))
             {
                 child = left_child;
             }
@@ -101,7 +107,7 @@ struct heapify_down_t
             auto const right_child_idx = node_idx * 2 + 2;
             auto right_child = begin + right_child_idx;
             if (ary_size > right_child_idx
-                && t_cmp_op_t{}(*right_child, *child))
+                && cmp_op_type{}(*right_child, *child))
             {
                 child = right_child;
             }
@@ -164,15 +170,12 @@ template <
 >
 struct heapify_t
 {
-    using iter_t = t_iter_t;
-    using heapify_up_type = heapify_up_t<t_iter_t, t_cmp_op_t>;
-    using heapify_down_type = heapify_down_t<t_iter_t, t_cmp_op_t>;
-//
-//!\todo TODO: >>> Under Construction <<<
-//
-//    using change_heap_value_type = change_heap_value_t<t_iter_t, t_cmd_op_t>;
+    using iter_type = t_iter_t;
+    using heapify_up_type = heapify_up_t<iter_type, t_cmp_op_t>;
+    using heapify_down_type = heapify_down_t<iter_type, t_cmp_op_t>;
+    using cmp_op_type = t_cmp_op_t;
 
-    void operator()(t_iter_t begin, t_iter_t end, t_cmp_op_t cmp_op = t_cmp_op_t{})
+    void operator()(iter_type begin, iter_type end)
     {
         for (auto iter = begin; end != iter; ++iter)
         {
@@ -205,12 +208,14 @@ template <
 class heap_t
 {
 public:
+    using item_type = t_item_t;
     using container_t = t_container_t;
     using iterator = typename container_t::iterator;
     using const_iterator = typename container_t::const_iterator;
     using heapify_type = t_heapify_t;
     using heapify_up_type = typename heapify_type::heapify_up_type;
     using heapify_down_type = typename heapify_type::heapify_down_type;
+    using cmp_op_type = typename heapify_type::cmp_op_type;
 
     heap_t() = default;
 
@@ -223,8 +228,8 @@ public:
     }
 
     //!\brief Initialize from begin/end iterator pair.
-    template<typename t_iter_t>
-    heap_t(t_iter_t begin, t_iter_t end)
+    template<typename I>
+    heap_t(I begin, I end)
         : array_(begin, end)
     {
         heapify_type{}(this->begin(), this->end());
@@ -232,7 +237,7 @@ public:
     
 #if 0
     // //!\brief Initialize from initializer list.
-    heap_t(std::initializer_list<t_item_t> list)
+    heap_t(std::initializer_list<item_type> list)
         : array_(list.begin(), list.end())
     {
         heapify_type{}(array_.begin(), array_.end());
@@ -240,9 +245,9 @@ public:
 #endif // #if 0
     
     //!\brief Initialize from initializer list, e.g. {1, 2, 3, 4, 5}.
-    template<typename... t_val_t>
-    heap_t(t_item_t&& val1, t_val_t&&... value)
-        : array_{std::forward<t_item_t>(val1), std::forward<t_val_t>(value)...}
+    template<typename... t_vals_t>
+    heap_t(item_type&& val1, t_vals_t&&... value)
+        : array_{std::forward<item_type>(val1), std::forward<t_vals_t>(value)...}
     {
         heapify_type{}(begin(), end());
     }
@@ -259,7 +264,7 @@ public:
     [[nodiscard]] auto const& operator[](std::size_t idx) const { return array_[idx]; }
     
     //!\brief Remove the head element from the heap.
-    t_item_t pop()
+    item_type pop()
     {
         if (empty()) { throw std::out_of_range{"empty"}; }
         auto const result = (*this)[0];
@@ -270,7 +275,7 @@ public:
     }
 
     //!\todo Add an element to the heap.
-    heap_t& push(t_item_t value)
+    heap_t& push(item_type value)
     {
         // Add the item to the leftmost available child position in the tree.
         // (Append the item to the array.)
@@ -283,7 +288,7 @@ public:
     }
 
     //!\brief Add an element to or replace an element in the heap.
-    heap_t& insert(iterator position, t_item_t value)
+    heap_t& insert(iterator position, item_type value)
     {
         if (end() == position)
         {
@@ -296,14 +301,9 @@ public:
         }
         else
         {
-//
-//!\todo TODO: Refactor the following logic, which is for a MAX heap ONLY, 
-//             so it also supports min heap.  Delegate to a type defined in
-//             t_heapify_t - similar to heapify_up_type and heapify_down_type.
-//
-            auto const increment = *position < value;
+            auto const move_value_up_tree = cmp_op_type{}(value, *position);
             *position = std::move(value);
-            if (increment)
+            if (move_value_up_tree)
             {
                 heapify_up_type{}(begin(), std::move(position));
             }
@@ -592,7 +592,6 @@ test_max_heap()
     }
 }
 
-
 void
 test_min_heap()
 {
@@ -702,12 +701,10 @@ test_min_heap()
         cout << std::endl;
     }
 
-#if 0
     cout << std::endl;
 
     { // New scope.
-        auto heap = min_heap_t
-        <int>{init_val};
+        auto heap = min_heap_t<int>{init_val};
         heap.insert([&]{
             auto iter = heap.begin();
             for (; heap.end() != iter; ++iter)
@@ -721,7 +718,7 @@ test_min_heap()
             return iter;
         }(), 5);
         cout << "Changed '5' to '5': " << '\n';
-        int const expected_values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+        int const expected_values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
         for (int idx = 0; std::size(expected_values) > idx; ++idx)
         {
             auto const value = heap.pop();
@@ -732,7 +729,6 @@ test_min_heap()
     }
 
     cout << std::endl;
-#endif // #if 0
 
     { // New scope.
         int values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
