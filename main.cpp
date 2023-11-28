@@ -1,5 +1,9 @@
+//!\sa https://github.com/doctest/doctest/blob/master/doc/markdown/main.md
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include <algorithm>
 #include <cassert>
+#include <doctest/doctest.h> //!\sa https://github.com/doctest/doctest/blob/master/doc/markdown/tutorial.md
 #include <functional>
 #include <iterator>
 #include <iostream>
@@ -441,162 +445,170 @@ heap_sort_decending(T (&ary)[S])
 
 // [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
 
-//!< Explicitly instantiate template to ensure the entire thing compiles.
+//!< Explicitly instantiate MAX heap template to ensure all of it compiles.
 template class heap_t<
     int
     , std::vector<int>
     , max_heapify_t<typename std::vector<int>::iterator>
 >;
 
-void
-test_max_heap()
+static int const max_heap_init_val[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+TEST_CASE("max_heap_heapification")
 {
-    cout << "((( TESTING MAX HEAP )))" << '\n' << '\n';
-
-    int const init_val[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
-    
-    { // New scope.
-        cout << "Before heapification:" << '\n' << init_val << '\n';
-        auto heap = max_heap_t<int>{init_val};
-        cout << "After heapification:" << '\n' << heap << '\n';
-        assert(std::size(init_val) == std::size(heapified_val));
-        assert(std::size(init_val) == heap.size());
-        for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
-        {
-            assert(heapified_val[idx] == heap[idx]);
-        }
-
-        cout << "Extracting: " << '\n' << std::flush;
-        for (int expected_value = 9; !heap.empty(); --expected_value)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ';
-            assert(value == expected_value);
-        }
-        cout << std::endl;
+    cout << "((( max_heap_heapification )))" << std::endl;
+    cout << "Before heapification: " << max_heap_init_val << '\n';
+    auto heap = max_heap_t<int>{max_heap_init_val};
+    static int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+    cout << "After heapification: " << heap << '\n';
+    assert(std::size(max_heap_init_val) == std::size(heapified_val));
+    assert(std::size(max_heap_init_val) == heap.size());
+    for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
+    {
+        CHECK(heapified_val[idx] == heap[idx]);
     }
 
+    cout << "Extracting: ";
+    for (int expected_value = 9; !heap.empty(); --expected_value)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ';
+        CHECK(value == expected_value);
+    }
     cout << std::endl;
-
-    { // New scope.
-        auto heap = max_heap_t<int>{init_val};
-        heap.push(10);
-        cout << "Added '10': " << '\n';
-        for (int expected_value = 10; !heap.empty(); --expected_value)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_value);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = max_heap_t<int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), 10);
-        cout << "Changed '5' to '10': " << '\n';
-        int const expected_values[] = { 10, 9, 8, 7, 6, 4, 3, 2, 1, 0 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = max_heap_t<int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), -1);
-        cout << "Changed '5' to '-1': " << '\n';
-        int const expected_values[] = { 9, 8, 7, 6, 4, 3, 2, 1, 0, -1 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = max_heap_t
-        <int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), 5);
-        cout << "Changed '5' to '5': " << '\n';
-        int const expected_values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        int values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-        cout << "Before sorting:" << '\n' << values << '\n';
-        heap_sort_ascending(values);
-        cout << "After sorting:" << '\n';
-        for (std::size_t idx = 0; std::size(values) > idx; ++idx)
-        {
-            auto const expected_value = idx;
-            auto const value = values[idx];
-            cout << value << ' ';
-            assert(value == expected_value);
-        }
-        cout << std::endl;
-    }
 }
 
-void
-test_min_heap()
+TEST_CASE("max_heap_push")
 {
-    cout << "((( TESTING MIN HEAP )))" << '\n' << '\n';
+    cout << "((( max_heap_push )))" << std::endl;
+    auto heap = max_heap_t<int>{max_heap_init_val};
+    heap.push(10);
+    cout << "Added '10': " << heap << '\n';
+    cout << "Extracting: ";
+    for (int expected_value = 10; !heap.empty(); --expected_value)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        CHECK(value == expected_value);
+    }
+    cout << std::endl;
+}
 
+TEST_CASE("max_heap_increment")
+{
+    cout << "((( max_heap_increment )))" << std::endl;
+    auto heap = max_heap_t<int>{max_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        CHECK(heap.end() != iter);
+        return iter;
+    }(), 10);
+    cout << "Changed '5' to '10': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { 10, 9, 8, 7, 6, 4, 3, 2, 1, 0 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        CHECK(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("max_heap_decrement")
+{
+    cout << "((( max_heap_decrement )))" << std::endl;
+    auto heap = max_heap_t<int>{max_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        CHECK(heap.end() != iter);
+        return iter;
+    }(), -1);
+    cout << "Changed '5' to '-1': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { 9, 8, 7, 6, 4, 3, 2, 1, 0, -1 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        CHECK(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("max_heap_insert_same")
+{
+    cout << "((( max_heap_insert_same )))" << std::endl;
+    auto heap = max_heap_t
+    <int>{max_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        CHECK(heap.end() != iter);
+        return iter;
+    }(), 5);
+    cout << "Changed '5' to '5': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        CHECK(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("max_heap_sort_ascending")
+{
+    cout << "((( max_heap_sort_ascending )))" << std::endl;
+    int values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+    cout << "Before sorting: " << values << '\n';
+    heap_sort_ascending(values);
+    cout << "After sorting: ";
+    for (std::size_t idx = 0; std::size(values) > idx; ++idx)
+    {
+        auto const expected_value = idx;
+        auto const value = values[idx];
+        cout << value << ' ';
+        CHECK(value == expected_value);
+    }
+    cout << std::endl;
+}
+
+// [----------------(120 columns)---------------> Module Code Delimiter <---------------(120 columns)----------------]
+
+//!< Explicitly instantiate MIN heap template to ensure all of it compiles.
+template class heap_t<
+    int
+    , std::vector<int>
+    , min_heapify_t<typename std::vector<int>::iterator>
+>;
+
+static int const min_heap_init_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+
+TEST_CASE("min_heap_heapification")
+{
     /*
             Heapified (valid MIN heap):
 
@@ -607,153 +619,144 @@ test_min_heap()
         
          0 1 2 3 4 5 6 7 8 9   (array indexes)
         [0 1 4 3 2 8 5 9 6 7]  (min heap)
-    */
-    int const init_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+    */    
+    cout << "((( min_heap_heapification )))" << std::endl;
+    cout << "Before heapification: " << min_heap_init_val << '\n';
+    auto heap = min_heap_t<int>{min_heap_init_val};
     int const heapified_val[] = { 0, 1, 4, 3, 2, 8, 5, 9, 6, 7 };
-    
-    { // New scope.
-        cout << "Before heapification:" << '\n' << init_val << '\n';
-        auto heap = min_heap_t<int>{init_val};
-        cout << "After heapification:" << '\n' << heap << '\n';
-        assert(std::size(init_val) == std::size(heapified_val));
-        assert(std::size(init_val) == heap.size());
-        for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
-        {
-            assert(heapified_val[idx] == heap[idx]);
-        }
-
-        cout << "Extracting: " << '\n' << std::flush;
-        for (int expected_value = 0; !heap.empty(); ++expected_value)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ';
-            assert(value == expected_value);
-        }
-        cout << std::endl;
+    cout << "After heapification: " << heap << '\n';
+    assert(std::size(min_heap_init_val) == std::size(heapified_val));
+    assert(std::size(min_heap_init_val) == heap.size());
+    for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
+    {
+        assert(heapified_val[idx] == heap[idx]);
     }
 
+    cout << "Extracting: ";
+    for (int expected_value = 0; !heap.empty(); ++expected_value)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ';
+        assert(value == expected_value);
+    }
     cout << std::endl;
-
-    { // New scope.
-        auto heap = min_heap_t<int>{init_val};
-        heap.push(10);
-        cout << "Added '10': " << '\n';
-        for (int expected_value = 0; !heap.empty(); ++expected_value)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_value);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = min_heap_t<int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), 10);
-        cout << "Changed '5' to '10': " << '\n';
-        int const expected_values[] = { 0, 1, 2, 3, 4, 6, 7, 8, 9, 10 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = min_heap_t<int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), -1);
-        cout << "Changed '5' to '-1': " << heap << '\n';
-        int const expected_values[] = { -1, 0, 1, 2, 3, 4, 6, 7, 8, 9 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        auto heap = min_heap_t<int>{init_val};
-        heap.insert([&]{
-            auto iter = heap.begin();
-            for (; heap.end() != iter; ++iter)
-            {
-                if (5 == *iter)
-                {
-                    break;
-                }
-            }
-            assert(heap.end() != iter);
-            return iter;
-        }(), 5);
-        cout << "Changed '5' to '5': " << '\n';
-        int const expected_values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-        for (int idx = 0; std::size(expected_values) > idx; ++idx)
-        {
-            auto const value = heap.pop();
-            cout << value << ' ' << std::flush;
-            assert(value == expected_values[idx]);
-        }
-        cout << std::endl;
-    }
-
-    cout << std::endl;
-
-    { // New scope.
-        int values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-        cout << "Before sorting:" << '\n' << values << '\n';
-        heap_sort_decending(values);
-        cout << "After sorting:" << '\n';
-        for (std::size_t idx = 0; std::size(values) > idx; ++idx)
-        {
-            auto const expected_value = std::size(values) - idx - 1;
-            auto const value = values[idx];
-            cout << value << ' ';
-            assert(value == expected_value);
-        }
-        cout << std::endl;
-    }
 }
 
-int 
-main(int, char**)
+TEST_CASE("min_heap_push")
 {
-    test_max_heap();
-    cout << '\n';
-    test_min_heap();
-    cout << '\n' << "ALL TESTS PASSED" << std::endl;
-    return 0;
+    cout << "((( min_heap_push )))" << std::endl;
+    auto heap = min_heap_t<int>{min_heap_init_val};
+    heap.push(10);
+    cout << "Added '10': " << heap << '\n';
+    cout << "Extracting: ";
+    for (int expected_value = 0; !heap.empty(); ++expected_value)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        assert(value == expected_value);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("min_heap_increment")
+{
+    cout << "((( min_heap_increment )))" << std::endl;
+    auto heap = min_heap_t<int>{min_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        assert(heap.end() != iter);
+        return iter;
+    }(), 10);
+    cout << "Changed '5' to '10': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { 0, 1, 2, 3, 4, 6, 7, 8, 9, 10 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        assert(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("min_heap_decrement")
+{
+    cout << "((( min_heap_decrement )))" << std::endl;
+    auto heap = min_heap_t<int>{min_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        assert(heap.end() != iter);
+        return iter;
+    }(), -1);
+    cout << "Changed '5' to '-1': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { -1, 0, 1, 2, 3, 4, 6, 7, 8, 9 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        assert(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("min_heap_insert_same")
+{
+    cout << "((( min_heap_insert_same )))" << std::endl;
+    auto heap = min_heap_t<int>{min_heap_init_val};
+    heap.insert([&]{
+        auto iter = heap.begin();
+        for (; heap.end() != iter; ++iter)
+        {
+            if (5 == *iter)
+            {
+                break;
+            }
+        }
+        assert(heap.end() != iter);
+        return iter;
+    }(), 5);
+    cout << "Changed '5' to '5': " << heap << '\n';
+    cout << "Extracting: ";
+    int const expected_values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    for (int idx = 0; std::size(expected_values) > idx; ++idx)
+    {
+        auto const value = heap.pop();
+        cout << value << ' ' << std::flush;
+        assert(value == expected_values[idx]);
+    }
+    cout << std::endl;
+}
+
+TEST_CASE("min_heap_sort_descending")
+{
+    cout << "((( min_heap_sort_descending )))" << std::endl;
+    int values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    cout << "Before sorting: " << values << '\n';
+    heap_sort_decending(values);
+    cout << "After sorting: ";
+    for (std::size_t idx = 0; std::size(values) > idx; ++idx)
+    {
+        auto const expected_value = std::size(values) - idx - 1;
+        auto const value = values[idx];
+        cout << value << ' ';
+        assert(value == expected_value);
+    }
+    cout << std::endl;
 }
 
 // End of file.
