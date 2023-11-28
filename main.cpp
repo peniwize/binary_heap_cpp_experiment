@@ -1,3 +1,13 @@
+/*!
+    \file "main.cpp"
+
+    Author: Matt Ervin <matt@impsoftware.org>
+    Formatting: 4 spaces/tab (spaces only; no tabs), 120 columns.
+    Doc-tool: Doxygen (http://www.doxygen.com/)
+
+    Experimental C++ heap implementation (for learning and practice).
+*/
+
 //!\sa https://github.com/doctest/doctest/blob/master/doc/markdown/main.md
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
@@ -461,8 +471,8 @@ TEST_CASE("max_heap_heapification")
     auto heap = max_heap_t<int>{max_heap_init_val};
     static int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
     cout << "After heapification: " << heap << '\n';
-    assert(std::size(max_heap_init_val) == std::size(heapified_val));
-    assert(std::size(max_heap_init_val) == heap.size());
+    static_assert(std::size(max_heap_init_val) == std::size(heapified_val));
+    CHECK(std::size(max_heap_init_val) == heap.size());
     for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
     {
         CHECK(heapified_val[idx] == heap[idx]);
@@ -625,11 +635,11 @@ TEST_CASE("min_heap_heapification")
     auto heap = min_heap_t<int>{min_heap_init_val};
     int const heapified_val[] = { 0, 1, 4, 3, 2, 8, 5, 9, 6, 7 };
     cout << "After heapification: " << heap << '\n';
-    assert(std::size(min_heap_init_val) == std::size(heapified_val));
-    assert(std::size(min_heap_init_val) == heap.size());
+    static_assert(std::size(min_heap_init_val) == std::size(heapified_val));
+    CHECK(std::size(min_heap_init_val) == heap.size());
     for (std::size_t idx = 0; std::size(heapified_val) > idx; ++idx)
     {
-        assert(heapified_val[idx] == heap[idx]);
+        CHECK(heapified_val[idx] == heap[idx]);
     }
 
     cout << "Extracting: ";
@@ -637,7 +647,7 @@ TEST_CASE("min_heap_heapification")
     {
         auto const value = heap.pop();
         cout << value << ' ';
-        assert(value == expected_value);
+        CHECK(value == expected_value);
     }
     cout << std::endl;
 }
@@ -653,7 +663,7 @@ TEST_CASE("min_heap_push")
     {
         auto const value = heap.pop();
         cout << value << ' ' << std::flush;
-        assert(value == expected_value);
+        CHECK(value == expected_value);
     }
     cout << std::endl;
 }
@@ -671,7 +681,7 @@ TEST_CASE("min_heap_increment")
                 break;
             }
         }
-        assert(heap.end() != iter);
+        CHECK(heap.end() != iter);
         return iter;
     }(), 10);
     cout << "Changed '5' to '10': " << heap << '\n';
@@ -681,7 +691,7 @@ TEST_CASE("min_heap_increment")
     {
         auto const value = heap.pop();
         cout << value << ' ' << std::flush;
-        assert(value == expected_values[idx]);
+        CHECK(value == expected_values[idx]);
     }
     cout << std::endl;
 }
@@ -699,7 +709,7 @@ TEST_CASE("min_heap_decrement")
                 break;
             }
         }
-        assert(heap.end() != iter);
+        CHECK(heap.end() != iter);
         return iter;
     }(), -1);
     cout << "Changed '5' to '-1': " << heap << '\n';
@@ -709,7 +719,7 @@ TEST_CASE("min_heap_decrement")
     {
         auto const value = heap.pop();
         cout << value << ' ' << std::flush;
-        assert(value == expected_values[idx]);
+        CHECK(value == expected_values[idx]);
     }
     cout << std::endl;
 }
@@ -727,7 +737,7 @@ TEST_CASE("min_heap_insert_same")
                 break;
             }
         }
-        assert(heap.end() != iter);
+        CHECK(heap.end() != iter);
         return iter;
     }(), 5);
     cout << "Changed '5' to '5': " << heap << '\n';
@@ -737,7 +747,7 @@ TEST_CASE("min_heap_insert_same")
     {
         auto const value = heap.pop();
         cout << value << ' ' << std::flush;
-        assert(value == expected_values[idx]);
+        CHECK(value == expected_values[idx]);
     }
     cout << std::endl;
 }
@@ -754,9 +764,11 @@ TEST_CASE("min_heap_sort_descending")
         auto const expected_value = std::size(values) - idx - 1;
         auto const value = values[idx];
         cout << value << ' ';
-        assert(value == expected_value);
+        CHECK(value == expected_value);
     }
     cout << std::endl;
 }
 
-// End of file.
+/*
+    End of "main.cpp"
+*/
