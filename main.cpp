@@ -34,7 +34,9 @@ using namespace std;
 */
 template <
     typename t_iter_t
-    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+    , typename t_cmp_op_t = std::greater<
+        typename std::iterator_traits<t_iter_t>::value_type
+    >
 >
 struct heapify_up_t
 {
@@ -94,7 +96,9 @@ struct heapify_up_t
 
 template <
     typename t_iter_t
-    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+    , typename t_cmp_op_t = std::greater<
+        typename std::iterator_traits<t_iter_t>::value_type
+    >
 >
 struct heapify_down_t
 {
@@ -180,7 +184,9 @@ struct heapify_down_t
 */
 template <
     typename t_iter_t
-    , typename t_cmp_op_t = std::greater<typename std::iterator_traits<t_iter_t>::value_type>
+    , typename t_cmp_op_t = std::greater<
+        typename std::iterator_traits<t_iter_t>::value_type
+    >
 >
 struct heapify_t
 {
@@ -278,14 +284,28 @@ public:
     [[nodiscard]] auto const& operator[](std::size_t idx) const { return array_[idx]; }
     
     //!\brief Remove the head element from the heap.
-    item_type pop()
+    item_type top()
+    {
+        if (empty()) { throw std::out_of_range{"empty"}; }
+        return (*this)[0];
+    }
+    
+    //!\brief Remove the head element from the heap.
+    [[nodiscard]] item_type pop_value()
     {
         if (empty()) { throw std::out_of_range{"empty"}; }
         auto const result = (*this)[0];
+        pop();
+        return result;
+    }
+    
+    //!\brief Remove the head element from the heap.
+    void pop()
+    {
+        if (empty()) { throw std::out_of_range{"empty"}; }
         std::swap(*begin(), *(end() - 1));
         array_.resize(size() - 1);
         heapify_down_type{}(begin(), end(), begin());
-        return result;
     }
 
     //!\todo Add an element to the heap.
@@ -481,7 +501,7 @@ TEST_CASE("max_heap_heapification")
     cout << "Extracting: ";
     for (int expected_value = 9; !heap.empty(); --expected_value)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ';
         CHECK(value == expected_value);
     }
@@ -497,7 +517,7 @@ TEST_CASE("max_heap_push")
     cout << "Extracting: ";
     for (int expected_value = 10; !heap.empty(); --expected_value)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_value);
     }
@@ -525,7 +545,7 @@ TEST_CASE("max_heap_increment")
     int const expected_values[] = { 10, 9, 8, 7, 6, 4, 3, 2, 1, 0 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
@@ -553,7 +573,7 @@ TEST_CASE("max_heap_decrement")
     int const expected_values[] = { 9, 8, 7, 6, 4, 3, 2, 1, 0, -1 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
@@ -582,7 +602,7 @@ TEST_CASE("max_heap_insert_same")
     int const expected_values[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
@@ -645,7 +665,7 @@ TEST_CASE("min_heap_heapification")
     cout << "Extracting: ";
     for (int expected_value = 0; !heap.empty(); ++expected_value)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ';
         CHECK(value == expected_value);
     }
@@ -661,7 +681,7 @@ TEST_CASE("min_heap_push")
     cout << "Extracting: ";
     for (int expected_value = 0; !heap.empty(); ++expected_value)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_value);
     }
@@ -689,7 +709,7 @@ TEST_CASE("min_heap_increment")
     int const expected_values[] = { 0, 1, 2, 3, 4, 6, 7, 8, 9, 10 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
@@ -717,7 +737,7 @@ TEST_CASE("min_heap_decrement")
     int const expected_values[] = { -1, 0, 1, 2, 3, 4, 6, 7, 8, 9 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
@@ -745,7 +765,7 @@ TEST_CASE("min_heap_insert_same")
     int const expected_values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     for (int idx = 0; std::size(expected_values) > idx; ++idx)
     {
-        auto const value = heap.pop();
+        auto const value = heap.pop_value();
         cout << value << ' ' << std::flush;
         CHECK(value == expected_values[idx]);
     }
