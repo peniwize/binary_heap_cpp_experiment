@@ -197,10 +197,26 @@ struct heapify_t
 
     void operator()(iter_type begin, iter_type end)
     {
+#if 0
+        // Do *NOT* do this!  Time complexity is O(n*log2(n))!
         for (auto iter = begin; end != iter; ++iter)
         {
             heapify_up_type{}(begin, iter);
         }
+#else // #if 0
+        if (1 < end - begin)
+        {
+            /*
+                Heapify DOWN on ONLY NON-leaf nodes, i.e. 1/2 of the nodes,
+                to heapify in O(n) [linear] time! :-)
+                Heapifying up on all nodes produces O(n*log2(n)) time. :-(
+            */
+            for (auto iter = begin + (end - begin - 1) / 2; begin <= iter; --iter)
+            {
+                heapify_down_type{}(begin, end, iter);
+            }
+        }
+#endif // #if 0
     }
 };
 
@@ -489,7 +505,7 @@ TEST_CASE("max_heap_heapification")
     cout << "((( max_heap_heapification )))" << std::endl;
     cout << "Before heapification: " << max_heap_init_val << '\n';
     auto heap = max_heap_t<int>{max_heap_init_val};
-    static int const heapified_val[] = { 9, 8, 5, 6, 7, 1, 4, 0, 3, 2 };
+    static int const heapified_val[] = { 9, 8, 6, 7, 4, 5, 2, 0, 3, 1 };
     cout << "After heapification: " << heap << '\n';
     static_assert(std::size(max_heap_init_val) == std::size(heapified_val));
     CHECK(std::size(max_heap_init_val) == heap.size());
@@ -653,7 +669,7 @@ TEST_CASE("min_heap_heapification")
     cout << "((( min_heap_heapification )))" << std::endl;
     cout << "Before heapification: " << min_heap_init_val << '\n';
     auto heap = min_heap_t<int>{min_heap_init_val};
-    int const heapified_val[] = { 0, 1, 4, 3, 2, 8, 5, 9, 6, 7 };
+    int const heapified_val[] = { 0, 2, 1, 3, 7, 5, 4, 6, 8, 9 };
     cout << "After heapification: " << heap << '\n';
     static_assert(std::size(min_heap_init_val) == std::size(heapified_val));
     CHECK(std::size(min_heap_init_val) == heap.size());
